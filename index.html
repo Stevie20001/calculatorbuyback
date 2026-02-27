@@ -20,7 +20,7 @@ body {
     background: white;
     padding: 30px;
     border-radius: 15px;
-    width: 420px;
+    width: 430px;
     box-shadow: 0 15px 40px rgba(0,0,0,0.2);
 }
 
@@ -88,22 +88,22 @@ button:hover {
 
     <div class="input-group">
         <label>Pokok Tagihan</label>
-        <input type="text" id="pokok" onblur="formatDecimal(this)">
+        <input type="text" id="pokok" oninput="formatNumber(this)">
     </div>
 
     <div class="input-group">
         <label>Bunga Berjalan</label>
-        <input type="text" id="bunga" onblur="formatDecimal(this)">
+        <input type="text" id="bunga" oninput="formatNumber(this)">
     </div>
 
     <div class="input-group">
         <label>Denda</label>
-        <input type="text" id="denda" onblur="formatDecimal(this)">
+        <input type="text" id="denda" oninput="formatNumber(this)">
     </div>
 
     <div class="input-group">
         <label>Denda Berjalan</label>
-        <input type="text" id="dendaBerjalan" onblur="formatDecimal(this)">
+        <input type="text" id="dendaBerjalan" oninput="formatNumber(this)">
     </div>
 
     <div class="input-group">
@@ -126,21 +126,48 @@ button:hover {
 
 <script>
 
-// Format dengan 2 desimal
-function formatDecimal(input) {
-    let value = input.value.replace(/,/g, '');
-    if (value === '') return;
+// FORMAT SEPERTI EXCEL (ribuan + max 2 desimal, tidak paksa .00)
+function formatNumber(input) {
+    let cursorPosition = input.selectionStart;
+    let originalLength = input.value.length;
+
+    let value = input.value.replace(/[^0-9.]/g, '');
+
+    // hanya boleh 1 titik desimal
+    let parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts[1];
+    }
+
+    // batasi 2 angka di belakang koma
+    if (parts[1]) {
+        parts[1] = parts[1].substring(0, 2);
+        value = parts[0] + '.' + parts[1];
+    }
+
+    if (value === '') {
+        input.value = '';
+        return;
+    }
 
     let number = parseFloat(value);
+
     if (!isNaN(number)) {
-        input.value = number.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
+        let formatted = number.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
             maximumFractionDigits: 2
         });
+
+        input.value = formatted;
+
+        // agar kursor tidak loncat jauh
+        let newLength = formatted.length;
+        cursorPosition = cursorPosition + (newLength - originalLength);
+        input.setSelectionRange(cursorPosition, cursorPosition);
     }
 }
 
-// Ambil angka asli
+// Ambil angka asli untuk hitung
 function getNumber(id) {
     let value = document.getElementById(id).value.replace(/,/g, '');
     return parseFloat(value) || 0;
@@ -151,7 +178,7 @@ function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
-        minimumFractionDigits: 2
+        maximumFractionDigits: 2
     }).format(angka);
 }
 
